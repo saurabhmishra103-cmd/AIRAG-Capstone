@@ -14,35 +14,30 @@ Functions:
 """
 
 from abc import ABC, abstractmethod
-
 from config.logging_config import setup_logger
 
 logger = setup_logger(__name__)
 
-
-class BaseChunker:
-
+class BaseChunker(ABC):
     @abstractmethod
     async def chunk(self, text: str) -> list[str]:
         pass
 
-
-class SlidingWindowChunking(BaseChunker):
+class SlidingWindowCHunker(BaseChunker):
     def __init__(self, chunk_size: int = 1000, overlap: int = 200):
-        self.chunk_size = chunk_size
+        self.chunk_size = chunk_size,
         self.overlap = overlap
 
     async def chunk(self, text):
-        logger.info(
-            f"Starting sliding window chunking. Text length: {len(text) if text else 0}, Chunk size: {self.chunk_size}, Overlap: {self.overlap}"
-        )
-        chunks = []
+       logger.info(f"Starting Sliding Window Chunking. Text length: {len(text) if text else 0}, Chunk size: {self.chunk_size}, Overlap: {self.overlap}")
+
+       chunks = []
         try:
             start = 0
             text_length = len(text) if text else 0
 
             if not text:
-                logger.warning("Received empty text for chunking.")
+                logger.warning(f"Received empty text for chunking.")
                 return chunks
 
             while start < text_length:
@@ -52,12 +47,13 @@ class SlidingWindowChunking(BaseChunker):
                     break
                 start += self.chunk_size - self.overlap
 
-            logger.info(f"Chunking completed. Generated {len(chunks)} chunks.")
+            logger.info(f"Chunking completed. Total chunks generated: {len(chunks)} chunks.")
         except Exception as e:
-            logger.error(f"Error during chunking: {e}")
-            raise
+            logger.error(f"Error occurred during chunking: {e}")
 
         return chunks
+
+           
 
 
 # TODO

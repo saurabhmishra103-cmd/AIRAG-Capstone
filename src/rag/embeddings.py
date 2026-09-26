@@ -16,18 +16,15 @@ Functions:
 - get_embeddings_batch(texts): Returns a list of vectors for a batch of strings.
 """
 
-from abc import ABC, abstractmethod
-
 import ollama
-from openai import AsyncOpenAI
 
+from abc import ABC, abstractmethod
 from config.logging_config import setup_logger
 from config.settings import settings
+from openai import AsyncOpenAI
 
 logger = setup_logger(__name__)
 
-
-# Template for our file loaders
 class BaseEmbeddingModel(ABC):
     def __init__(self):
         pass
@@ -38,16 +35,17 @@ class BaseEmbeddingModel(ABC):
 
 
 class OpenAIEmbeddings(BaseEmbeddingModel):
-
     def __init__(self):
         self.client = AsyncOpenAI(
-            api_key=settings.OPENAI_API_KEY, base_url=settings.OPENAI_API_BASE_URL
+            api_key = settings.OPENAI_API_KEY,
+            base_url = settings.OPENAI_BASE_URL
         )
 
     async def get_embedding(self, chunk: str) -> list[float]:
         try:
             response = await self.client.embeddings.create(
-                input=[chunk], model=settings.OPENAI_API_EMBEDDING_MODEL
+                input = [chunk],
+                model = settings.OPENAI_EMBEDDING_MODEL
             )
             return response.data[0].embedding
         except Exception as e:
@@ -58,12 +56,14 @@ class OpenAIEmbeddings(BaseEmbeddingModel):
 class OllamaEmbeddings(BaseEmbeddingModel):
     async def get_embedding(self, chunk: str) -> list[float]:
         try:
-            response = ollama.embed(model=settings.OLLAMA_EMBEDDING_MODEL, input=chunk)
+            response = ollama.embed(
+                model = settings.OLLAMA_EMBEDDING_MODEL,
+                input = chunk
+                )
             return response["embeddings"][0]
         except Exception as e:
-            logger.error(f"Ollama embedding generation failed: {e}")
-            raise
-
+                logger.error(f"Ollama embedding generation failed: {e}")
+                raise
 
 # TODO
 class HuggingFaceEmbeddings(BaseEmbeddingModel):
@@ -78,18 +78,15 @@ class ModelSelector:
         elif settings.EMBEDDING_MODEL_SOURCE == "ollama":
             return OllamaEmbeddings()
         else:
-            raise ValueError(
-                f"Unknown embedding model source: {settings.EMBEDDING_MODEL_SOURCE}"
-            )
+            logger.error(f"Unsupported embedding model source: {settings.EMBEDDING_MODEL_SOURCE}")
+            raise ValueError(f"Unsupported embedding model source: {settings.EMBEDDING_MODEL_SOURCE}")
 
     @staticmethod
-    async def get_embedded(chunks: list[str]) -> list[list[float]]:
+    async def get_embedding(chunks: list[str]) -> list[list[float]]:
         vector = []
         model = ModelSelector._get_model()
 
-        logger.info(
-            f"Generating embeddings for {len(chunks)} chunks using {settings.EMBEDDING_MODEL_SOURCE} model"
-        )
+        logger.info(f"Generating embeddings for {len(chunks)} using {settings.EMBEDDING_MODEL_SOURCE} model")
 
         try:
             chunk_size = len(chunks)
@@ -98,24 +95,12 @@ class ModelSelector:
                 embedded = await model.get_embedding(chunk)
                 vector.append(embedded)
                 logger.info(
-                    f"Embedding Progress: {round(start / chunk_size * 100, 2)}%"
+                    f"Embedding Progress: {round(start/chunk_size*100,2)}%)"
                 )
                 start += 1
-            logger.info(f"Successfully generated {len(vector)} embeddings.")
         except Exception as e:
-            logger.error(f"Error during batch embedding generation: {e}")
+            logger.error(f"Error during embedding generation: {e}")
             raise
 
-        return vector
-
-    @staticmethod
-    async def get_single_embedding(query: str) -> list[float]:
-        model = ModelSelector._get_model()
-        logger.info(
-            f"Generating embedding for query using {settings.EMBEDDING_MODEL_SOURCE} model"
-        )
-        try:
-            return await model.get_embedding(query)
-        except Exception as e:
-            logger.error(f"Error generating single embedding: {e}")
-            raise
+    return vector
+ 
